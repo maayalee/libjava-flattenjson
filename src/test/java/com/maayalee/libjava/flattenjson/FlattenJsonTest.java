@@ -24,19 +24,20 @@ public class FlattenJsonTest extends TestCase {
     }
 
     public void testObjectFlatten() {
-        String jsonString = "{\"field1\":\"test1\", \"foo\":{\"bar\":\"test2\", \"bar2\":{\"val\":\"1234\"}}}";
+        String jsonString = "{\"field1\":\"value1\",\"field2\":{\"sub1\":\"value2\",\"sub2\":{\"sub3\":\"value3\"}}}";
         Type type = new TypeToken<Map<String, Object>>() {
         }.getType();
         Map<String, Object> element = new Gson().fromJson(jsonString, type);
 
         String v = (String) element.get("field1");
-        assertTrue(v.equals("test1"));
-        Map<String, Object> child = (Map<String, Object>) element.get("foo");
-        String v2 = (String) child.get("bar");
-        assertTrue(v2.equals("test2"));
+        assertTrue(v.equals("value1"));
+        Map<String, Object> child = (Map<String, Object>) element.get("field2");
+        String v2 = (String) child.get("sub1");
+        assertTrue(v2.equals("value2"));
 
         FlattenJson flatten = new FlattenJson();
-        flatten.addRule("$.foo.bar", "$.foo_bar");
+        flatten.addRule("$.field2.sub1", "$.field2_sub1");
+        //flatten.addRule("$.field2.sub2", "$.field2_sub2");
         Map<String, Object> flattenElement = flatten.unnest(element);
     }
 }
