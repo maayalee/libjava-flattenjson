@@ -44,18 +44,21 @@ public class FlattenJsonTest extends TestCase {
   }
 
   public void testFlattenArrayOfObject() {
-    String jsonString = "{\"field1\":\"value1\",\"field2\":\"value2\",\"items\":[{\"id\":1,\"item\":\"item1\"},{\"id\":2,\"item\":\"item2\"},{\"id\":3,\"item\":\"item3\"}]}";
+    //String jsonString = "{\"field1\":\"value1\",\"field2\":\"value2\",\"items\":[{\"id\":1,\"item\":\"item1\"},{\"id\":2,\"item\":\"item2\"},{\"id\":3,\"item\":\"item3\"}]}";
+    String jsonString = "{\"field1\":\"value1\",\"field2\":\"value2\",\"items\":[{\"id\":1,\"item\":\"item1\"},{\"id\":2,\"item\":\"item2\"},{\"id\":3,\"item\":\"item3\",\"childs\":[{\"key1\":1,\"key2\":2},{\"key1\":1,\"key2\":2}]}]}";
     Type type = new TypeToken<Map<String, Object>>() {
     }.getType();
     Map<String, Object> element = new Gson().fromJson(jsonString, type);
 
     FlattenJson flatten = new FlattenJson();
-    flatten.addRule("$.items[].id", "extract_rows.id");
-    flatten.addRule("$.items[].item", "extract_rows.item");
+    flatten.addRule("$.items[].id", "extract_rows1.id");
+    flatten.addRule("$.items[].item", "extract_rows1.item");
+    flatten.addRule("$.items[].childs[].key1", "extract_rows2.key1");
+    flatten.addRule("$.items[].childs[].key2", "extract_rows2.key2");
 
     Map<String, Object> unnestRow = flatten.unnest(element);
-    //List<Map<String, Object>> extractRows = flatten.getExtractRows("extract_rows");
-    //assertTrue(extractRows.size() == 3);
+    Map<Integer, Map<String, Object>> extractRows = flatten.getExtractRows("extract_rows1");
+    assertTrue(extractRows.size() == 3);
   }
 
   public void testFlattenArrayOfValue() {
