@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<testsuite tests="1" failures="0" name="com.maayalee.libjava.flattenjson.FlattenJsonTest" time="0.187" errors="0" skipped="0">
+<testsuite tests="2" failures="0" name="com.maayalee.libjava.flattenjson.FlattenJsonTest" time="0.211" errors="0" skipped="0">
   <properties>
     <property name="idea.version" value="2018.2.3"/>
     <property name="java.runtime.name" value="Java(TM) SE Runtime Environment"/>
@@ -63,5 +63,6 @@
     <property name="sun.desktop" value="windows"/>
     <property name="sun.cpu.isalist" value="amd64"/>
   </properties>
-  <testcase classname="com.maayalee.libjava.flattenjson.FlattenJsonTest" name="testObjectFlatten" time="0.187"/>
+  <testcase classname="com.maayalee.libjava.flattenjson.FlattenJsonTest" name="testFlattenArrayOfObject" time="0.211"/>
+  <testcase classname="com.maayalee.libjava.flattenjson.FlattenJsonTest" name="testFlattenArrayOfValue" time="0"/>
 </testsuite>

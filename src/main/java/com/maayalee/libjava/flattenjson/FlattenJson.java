@@ -17,15 +17,35 @@ public class FlattenJson {
 
     public Map<String, Object> unnest(Map<String, Object> object) {
         flattenObject = new HashMap<String, Object>();
+        extractObjects = new HashMap<String, Map<Integer, Map<String, Object>>>();
+
         String path = "$";
         // 1. unnest 처리후 원본 데이터에서 해당 필드를 제거한다. 이대 unnest 대상은 flattenObject['xxxx']에 넣고 리스트로 따로 뺄 객체는 flattenObject[list_name]에 넣는다.
         retrieveFlatten(path, object);
+        retrieveList(path, object, -1);
         // 2. 나머지 필드는 그대로 복사. 모든 flattenObject에 복사한다.
-        retrieveElements(path, object);
+        retrieveElements(path, object, flattenObject);
+        for (String extractName : extractObjects.keySet()) {
+            Map<Integer, Map<String, Object>> rows = extractObjects.get(extractName);
+            for (Integer rowIndex : rows.keySet()) {
+                retrieveElements(path, object, rows.get(rowIndex));
+            }
+        }
 
         // 다른 테이블로 쪼개는 룰의 경우 다른 HashMap에 구성한다.
-        LOG.info("Output 1:" + flattenObject.toString());
-        return object;
+        LOG.info("Output flattenObject:" + flattenObject.toString());
+        for (String extractName : extractObjects.keySet()) {
+            LOG.info("Output extractName: " + extractName);
+            Map<Integer, Map<String, Object>> rows = extractObjects.get(extractName);
+            for (Integer rowIndex : rows.keySet()) {
+                LOG.info("Output rowIndex:" + rows.get(rowIndex).toString());
+            }
+        }
+        return flattenObject;
+    }
+
+    public Map<Integer, Map<String, Object>> getExtractRows(String listName) {
+        return extractObjects.get(listName);
     }
 
     private void retrieveFlatten(String path, Map<String, Object> object) {
@@ -38,22 +58,27 @@ public class FlattenJson {
 
             LOG.info("Key:" + key +  ", Value:" + value + ", Path:" + currentElementPath);
 
-            boolean find = false;
             for (FlattenRule rule : rules) {
+                LOG.info("rule:" + rule.express);
                 if (rule.express.equals(currentElementPath)) {
-                    find = true;
-                    LOG.info("Path:" + currentElementPath + ", Rule:" + rule.express + " / " + rule.flatten);
+                    LOG.info("Path:" + currentElementPath + ", Rule:" + rule.express + " => " + rule.flatten);
                     insertObject(flattenObject, rule.flatten, value);
                     object.remove(key);
                 }
             }
             if (value instanceof Map) {
                 retrieveFlatten(currentElementPath, (Map<String, Object>)value);
+
+                // 자식의 순회 처리가 끝날때마다 키를 가지지 않는 필드는 제거해준다.
+                Map<String, Object> postValue = (Map<String, Object>)value;
+                if (postValue.keySet().size() == 0) {
+                    object.remove(key);
+                }
             }
         }
     }
 
-    private void retrieveElements(String path, Map<String, Object> object) {
+    private void retrieveList(String path, Map<String, Object> object, int index) {
         List<Map.Entry<String, Object>> entries = new ArrayList<Map.Entry<String, Object>>(object.entrySet());
         for (int i = 0; i < entries.size(); ++i) {
             Map.Entry<String, Object> entry =  entries.get(i);
@@ -62,9 +87,83 @@ public class FlattenJson {
             String currentElementPath = path + "." + key;
 
             LOG.info("Key:" + key +  ", Value:" + value + ", Path:" + currentElementPath);
-            insertObject(flattenObject, currentElementPath, value);
+
+            for (FlattenRule rule : rules) {
+                LOG.info("rule:" + rule.express);
+                if (rule.express.equals(currentElementPath) && index != -1) {
+                    LOG.info("Path:" + currentElementPath + ", Rule:" + rule.express + " => " + rule.flatten + ", Row Index: " + index);
+
+                    String[] flattenTokens = rule.flatten.split("\\.");
+                    String listName = flattenTokens[0];
+                    Map<Integer, Map<String, Object>> rows;
+                    if (extractObjects.containsKey(listName))  {
+                        rows =  extractObjects.get(listName);
+                    }
+                    else {
+                        rows = new HashMap<Integer, Map<String, Object>>();
+                        extractObjects.put(listName, rows);
+                    }
+                    Map<String, Object> row;
+                    if (rows.containsKey(index)) {
+                        row = rows.get(index);
+                    }
+                    else {
+                        row = new HashMap<String, Object>();
+                        rows.put(index, row);
+                    }
+                    insertObject(row, rule.flatten.replace(listName, "$"), value);
+                    object.remove(key);
+                }
+            }
+
             if (value instanceof Map) {
-                retrieveElements(currentElementPath, (Map<String, Object>)value);
+                retrieveList(currentElementPath, (Map<String, Object>)value, -1);
+                // 자식의 순회 처리가 끝날때마다 키를 가지지 않는 필드는 제거해준다.
+                Map<String, Object> postValue = (Map<String, Object>)value;
+                if (postValue.keySet().size() == 0) {
+                    object.remove(key);
+                }
+            }
+
+            if (value instanceof List) {
+                currentElementPath += "[]";
+                List<Object> childs = (List<Object>)value;
+                for (int j = 0; j < childs.size(); ++j) {
+                    Object child = childs.get(j);
+                    if (child instanceof Map) {
+                        retrieveList(currentElementPath , (Map<String, Object>)child, j);
+                    }
+                }
+                Iterator<Object> it = childs.iterator();
+                while (it.hasNext()) {
+                    Object child = it.next();
+                    if (child instanceof Map) {
+                        Map<String, Object> childValue = (Map<String, Object>)child;
+                        if (childValue.size() == 0) {
+                            it.remove();
+                        }
+                    }
+                }
+
+                if (childs.size() == 0 ) {
+                    object.remove(key);
+                }
+            }
+        }
+    }
+
+    private void retrieveElements(String path, Map<String, Object> object, Map<String, Object> writeObject) {
+        List<Map.Entry<String, Object>> entries = new ArrayList<Map.Entry<String, Object>>(object.entrySet());
+        for (int i = 0; i < entries.size(); ++i) {
+            Map.Entry<String, Object> entry =  entries.get(i);
+            String key = entry.getKey();
+            Object value = entry.getValue();
+            String currentElementPath = path + "." + key;
+
+            LOG.info("Key:" + key +  ", Value:" + value + ", Path:" + currentElementPath);
+            insertObject(writeObject, currentElementPath, value);
+            if (value instanceof Map) {
+                retrieveElements(currentElementPath, (Map<String, Object>)value, writeObject);
             }
         }
     }
@@ -112,6 +211,7 @@ public class FlattenJson {
         }
     }
 
-    private Map<String, Object> flattenObject = new HashMap<String, Object>();
+    private Map<String, Object> flattenObject;
+    private Map<String, Map<Integer, Map<String, Object>>> extractObjects;
     private List<FlattenRule> rules = new LinkedList<FlattenRule>();
 }

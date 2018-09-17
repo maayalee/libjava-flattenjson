@@ -2,6 +2,7 @@ package com.maayalee.libjava.flattenjson;
 import com.google.gson.JsonParser;
 
 import java.lang.reflect.Type;
+import java.util.List;
 import java.util.Map;
 
 import com.google.gson.Gson;
@@ -16,34 +17,47 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class FlattenJsonTest extends TestCase {
-    private static final Logger LOG = LoggerFactory.getLogger(FlattenJsonTest.class);
+  private static final Logger LOG = LoggerFactory.getLogger(FlattenJsonTest.class);
 
-    public FlattenJsonTest(String testName) {
-        super(testName);
-    }
+  public FlattenJsonTest(String testName) {
+    super(testName);
+  }
 
-    public static Test suite() {
-        return new TestSuite(FlattenJsonTest.class);
-    }
+  public static Test suite() {
+    return new TestSuite(FlattenJsonTest.class);
+  }
 
-    public void testObjectFlatten() {
-        String jsonString = "{\"field1\":\"value1\",\"field2\":{\"sub1\":\"value2\",\"sub2\":{\"sub3\":\"value3\"}}}";
-        Type type = new TypeToken<Map<String, Object>>() {
-        }.getType();
-        Map<String, Object> element = new Gson().fromJson(jsonString, type);
+  public void ttttestFlattenObject() {
+    String jsonString = "{\"field1\":\"value1\",\"field2\":{\"sub1\":\"value2\",\"sub2\":{\"sub3\":\"value3\"}}, \"field3\":\"value4\"}";
+    Type type = new TypeToken<Map<String, Object>>() {
+    }.getType();
+    Map<String, Object> element = new Gson().fromJson(jsonString, type);
 
-        String v = (String) element.get("field1");
-        assertTrue(v.equals("value1"));
-        Map<String, Object> child = (Map<String, Object>) element.get("field2");
-        String v2 = (String) child.get("sub1");
-        assertTrue(v2.equals("value2"));
+    FlattenJson flatten = new FlattenJson();
+    flatten.addRule("$.field2.sub1", "$.field2_sub1");
+    flatten.addRule("$.field2.sub2.sub3", "$.field2_sub2_sub3");
+    Map<String, Object> unnestRow = flatten.unnest(element);
 
-        FlattenJson flatten = new FlattenJson();
-        flatten.addRule("$.field2.sub1", "$.field2_sub1");
-        //flatten.addRule("$.field2.sub2", "$.field2_sub2");
-        Map<String, Object> flattenElement = flatten.unnest(element);
+    assertTrue(unnestRow.get("field1").equals("value1"));
+    assertTrue(unnestRow.get("field2_sub1").equals("value2"));
+    assertTrue(unnestRow.get("field2_sub2_sub3").equals("value3"));
+  }
 
-        LOG.warn("test warn");
-        LOG.debug("test debug");
-    }
+  public void testFlattenArrayOfObject() {
+    String jsonString = "{\"field1\":\"value1\",\"field2\":\"value2\",\"items\":[{\"id\":1,\"item\":\"item1\"},{\"id\":2,\"item\":\"item2\"},{\"id\":3,\"item\":\"item3\"}]}";
+    Type type = new TypeToken<Map<String, Object>>() {
+    }.getType();
+    Map<String, Object> element = new Gson().fromJson(jsonString, type);
+
+    FlattenJson flatten = new FlattenJson();
+    flatten.addRule("$.items[].id", "extract_rows.id");
+    flatten.addRule("$.items[].item", "extract_rows.item");
+
+    Map<String, Object> unnestRow = flatten.unnest(element);
+    //List<Map<String, Object>> extractRows = flatten.getExtractRows("extract_rows");
+    //assertTrue(extractRows.size() == 3);
+  }
+
+  public void testFlattenArrayOfValue() {
+  }
 }
