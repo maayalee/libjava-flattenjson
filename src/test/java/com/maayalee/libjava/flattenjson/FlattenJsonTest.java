@@ -12,8 +12,11 @@ import com.google.gson.reflect.TypeToken;
 import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FlattenJsonTest extends TestCase {
+    private static final Logger LOG = LoggerFactory.getLogger(FlattenJsonTest.class);
 
     public FlattenJsonTest(String testName) {
         super(testName);
@@ -39,5 +42,8 @@ public class FlattenJsonTest extends TestCase {
         flatten.addRule("$.field2.sub1", "$.field2_sub1");
         //flatten.addRule("$.field2.sub2", "$.field2_sub2");
         Map<String, Object> flattenElement = flatten.unnest(element);
+
+        LOG.warn("test warn");
+        LOG.debug("test debug");
     }
 }
