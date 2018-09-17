@@ -44,7 +44,6 @@ public class FlattenJsonTest extends TestCase {
   }
 
   public void testFlattenArrayOfObject() {
-    //String jsonString = "{\"field1\":\"value1\",\"field2\":\"value2\",\"items\":[{\"id\":1,\"item\":\"item1\"},{\"id\":2,\"item\":\"item2\"},{\"id\":3,\"item\":\"item3\"}]}";
     String jsonString = "{\"field1\":\"value1\",\"field2\":\"value2\",\"items\":[{\"id\":1,\"item\":\"item1\"},{\"id\":2,\"item\":\"item2\"},{\"id\":3,\"item\":\"item3\",\"childs\":[{\"key1\":1,\"key2\":2},{\"key1\":1,\"key2\":2}]}]}";
     Type type = new TypeToken<Map<String, Object>>() {
     }.getType();
@@ -59,6 +58,8 @@ public class FlattenJsonTest extends TestCase {
     Map<String, Object> unnestRow = flatten.unnest(element);
     Map<Integer, Map<String, Object>> extractRows = flatten.getExtractRows("extract_rows1");
     assertTrue(extractRows.size() == 3);
+    extractRows = flatten.getExtractRows("extract_rows2");
+    assertTrue(extractRows.size() == 2);
   }
 
   public void testFlattenArrayOfValue() {
