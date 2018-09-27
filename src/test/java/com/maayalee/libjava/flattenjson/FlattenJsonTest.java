@@ -28,7 +28,7 @@ public class FlattenJsonTest extends TestCase {
     return new TestSuite(FlattenJsonTest.class);
   }
 
-  public void ttttestFlattenObject() {
+  public void testFlattenObject() {
     String jsonString = "{\"field1\":\"value1\",\"field2\":{\"sub1\":\"value2\",\"sub2\":{\"sub3\":\"value3\"}}, \"field3\":\"value4\"}";
     JsonParser parser = new JsonParser();
     JsonObject element = parser.parse(jsonString).getAsJsonObject();
@@ -38,9 +38,32 @@ public class FlattenJsonTest extends TestCase {
     flatten.addRule("$.field2.sub2.sub3", "$.field2_sub2_sub3");
     JsonObject unnestRow = flatten.unnest(element);
 
-    assertTrue(unnestRow.get("field1").equals("value1"));
-    assertTrue(unnestRow.get("field2_sub1").equals("value2"));
-    assertTrue(unnestRow.get("field2_sub2_sub3").equals("value3"));
+    assertTrue(unnestRow.get("field1").getAsString().equals("value1"));
+    assertTrue(unnestRow.get("field2_sub1").getAsString().equals("value2"));
+    assertTrue(unnestRow.get("field2_sub2_sub3").getAsString().equals("value3"));
+  }
+
+  public void testInsensitiveComparison() {
+    String jsonString = "{\"field1\":\"value1\",\"field2\":{\"sub1\":\"value2\",\"sub2\":{\"sub3\":\"value3\"}}, \"field3\":\"value4\"}";
+    JsonParser parser = new JsonParser();
+    FlattenJson flatten = new FlattenJson();
+    flatten.addRule("$.field2.sub1", "$.field2_sub1");
+    flatten.addRule("$.field2.sub2.sub3", "$.field2_sub2_sub3");
+    JsonObject unnestRow = flatten.unnest(parser.parse(jsonString).getAsJsonObject());
+    LOG.info(unnestRow.toString());
+    assertTrue(unnestRow.get("field1").getAsString().equals("value1"));
+    assertTrue(unnestRow.get("field2_sub1").getAsString().equals("value2"));
+    assertTrue(unnestRow.get("field2_sub2_sub3").getAsString().equals("value3"));
+
+    flatten = new FlattenJson();
+    flatten.toggleInsensitiveExpression(true);
+    flatten.addRule("$.field2.suB1", "$.field2_sub1");
+    flatten.addRule("$.field2.Sub2.SUB3", "$.field2_sub2_sub3");
+    unnestRow = flatten.unnest(parser.parse(jsonString).getAsJsonObject());
+    LOG.info("Caseinsensitive:" + unnestRow.toString());
+    assertTrue(unnestRow.get("field1").getAsString().equals("value1"));
+    assertTrue(unnestRow.get("field2_sub1").getAsString().equals("value2"));
+    assertTrue(unnestRow.get("field2_sub2_sub3").getAsString().equals("value3"));
   }
 
   public void testFlattenArrayOfObject() {
@@ -82,7 +105,7 @@ public class FlattenJsonTest extends TestCase {
 
   public void testFlattenArrayOfValue() {
   }
-  public void testTime() {
+  public void testWindowTimestamp() {
     Long timestamp = 636725345856551953L / 10000000; // 9/14일
     try {
       SimpleDateFormat f = new SimpleDateFormat("MM-dd-yyyy hh:mm:ss");

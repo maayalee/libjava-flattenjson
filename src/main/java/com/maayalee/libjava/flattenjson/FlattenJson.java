@@ -47,24 +47,31 @@ public class FlattenJson {
   }
 
   private void retrieveFlatten(String path, JsonObject object) {
-    Set<Entry<String, JsonElement>> entrySet = object.entrySet();
-    for (Entry<String, JsonElement> entry : entrySet ) {
-      String key = entry.getKey();
-      JsonElement value = entry.getValue();
+    List<String> keyList = new ArrayList<String>(object.keySet());
+    for (int i = 0; i < keyList.size(); ++i) {
+      String key = keyList.get(i);
+      JsonElement value = object.get(key);
       String currentElementPath = path + "." + key;
 
       // LOG.info("Key:" + key + ", Value:" + value + ", Path:" + currentElementPath);
 
       for (FlattenRule rule : rules) {
         // LOG.info("rule:" + rule.express);
-        if (rule.express.equals(currentElementPath)) {
+        boolean equal;
+        if (useInsensitiveExpression) {
+          equal = rule.express.equalsIgnoreCase(currentElementPath);
+        }
+        else {
+          equal = rule.express.equals(currentElementPath);
+        }
+        if (equal) {
           // LOG.info("Path:" + currentElementPath + ", Rule:" + rule.express + " => " + rule.flatten);
           insertObject(flattenObject, rule.flatten, value);
           object.remove(key);
         }
       }
       if (value instanceof JsonObject) {
-        retrieveFlatten(currentElementPath, (JsonObject)value);
+        retrieveFlatten(currentElementPath, (JsonObject) value);
 
         // 자식의 순회 처리가 끝날때마다 키를 가지지 않는 필드는 제거해준다.
         JsonObject postValue = (JsonObject) value;
@@ -77,8 +84,7 @@ public class FlattenJson {
 
   private void retrieveList(String path, JsonObject object, int index) {
     List<String> keyList = new ArrayList<String>(object.keySet());
-    Set<Entry<String, JsonElement>> entrySet = object.entrySet();
-    for (int i  = 0; i < keyList.size(); ++i) {
+    for (int i = 0; i < keyList.size(); ++i) {
       String key = keyList.get(i);
       JsonElement value = object.get(key);
       String currentElementPath = path + "." + key;
@@ -87,7 +93,14 @@ public class FlattenJson {
 
       for (FlattenRule rule : rules) {
         // LOG.info("rule:" + rule.express);
-        if (rule.express.equals(currentElementPath) && index != -1) {
+        boolean equals;
+        if (useInsensitiveExpression) {
+          equals = rule.express.equalsIgnoreCase(currentElementPath);
+        }
+        else {
+          equals = rule.express.equals(currentElementPath);
+        }
+        if (equals && index != -1) {
           // LOG.info("Path:" + currentElementPath + ", Rule:" + rule.express + " => " + rule.flatten + ", Row Index: "
           // + index);
 
@@ -156,7 +169,7 @@ public class FlattenJson {
 
   private void retrieveElements(String path, JsonObject object, JsonObject writeObject) {
     Set<Entry<String, JsonElement>> entrySet = object.entrySet();
-    for (Entry<String, JsonElement> entry : entrySet ) {
+    for (Entry<String, JsonElement> entry : entrySet) {
       String key = entry.getKey();
       JsonElement value = entry.getValue();
       String currentElementPath = path + "." + key;
@@ -192,7 +205,14 @@ public class FlattenJson {
     for (int i = 1; i < tokens.length; ++i) {
       String key = tokens[i];
       path = path + "." + key;
-      if (path.equals(matchPath)) {
+      boolean equal;
+      if (useInsensitiveExpression) {
+        equal = path.equalsIgnoreCase(matchPath);
+      }
+      else {
+        equal = path.equals(matchPath);
+      }
+      if (equal) {
         // LOG.info("Match Insert Key: " + insertKey);
         currentObject.add(insertKey, insertValue);
         return;
@@ -210,12 +230,17 @@ public class FlattenJson {
     }
   }
 
-  public void toogleExtractIndex(boolean value)  {
+  public void toogleExtractIndex(boolean value) {
     this.useExtractIndex = value;
+  }
+
+  public void toggleInsensitiveExpression(boolean value) {
+    this.useInsensitiveExpression = value;
   }
 
   private JsonObject flattenObject;
   private Map<String, Map<Integer, JsonObject>> extractObjects;
   private List<FlattenRule> rules = new LinkedList<FlattenRule>();
   private boolean useExtractIndex = false;
+  private boolean useInsensitiveExpression = false;
 }
