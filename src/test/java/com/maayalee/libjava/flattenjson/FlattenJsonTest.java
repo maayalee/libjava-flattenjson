@@ -129,7 +129,7 @@ public class FlattenJsonTest extends TestCase {
       LOG.info("1~1970 years seconds: " + seconds); // Calendar를 gkems Date 함수로 빼든 동일한 결과를 얻게 된다.
       Long t = timestamp - seconds;
       LOG.info("Esphper Timestampe1: " + t);
-      t = timestamp - 62135596800L; // 이게 맞다. 근데 Date 함수로 계산하면 62135596800L값이 아니라 62135769600L값으로 이틀 차이가 나는 이유가 무엇인지 모르겟다. 달력 계산 사용 방식? 닷넷의 Universla Time Scale 관련 이슈라고 하는데..
+      t = timestamp - (621355968000000000L / 10000000L); // 이게 맞다. 근데 Date 함수로 계산하면 62135596800L값이 아니라 62135769600L값으로 이틀 차이가 나는 이유가 무엇인지 모르겟다. 달력 계산 사용 방식? 닷넷의 Universla Time Scale 관련 이슈라고 하는데..
       LOG.info("Esphper Timestampe2: " + t);
 
 
