@@ -30,6 +30,7 @@ public class FlattenJson {
     // 1. unnest 처리후 원본 데이터에서 해당 필드를 제거한다. 이대 unnest 대상은 flattenObject['xxxx']에 넣고 리스트로 따로 뺄 객체는
     // flattenObject[list_name]에 넣는다.
     retrieveFlatten(path, object);
+    retrieveFlattenkemove(path, object);
     retrieveList(path, object, -1);
     // 2. 나머지 필드는 그대로 복사. 모든 flattenObject에 복사한다.
     retrieveElements(path, object, flattenObject);
@@ -67,11 +68,39 @@ public class FlattenJson {
         if (equal) {
           // LOG.info("Path:" + currentElementPath + ", Rule:" + rule.express + " => " + rule.flatten);
           insertObject(flattenObject, rule.flatten, value);
-          object.remove(key);
         }
       }
       if (value instanceof JsonObject) {
         retrieveFlatten(currentElementPath, (JsonObject) value);
+      }
+    }
+  }
+
+  private void retrieveFlattenRemove(String path, JsonObject object) {
+    List<String> keyList = new ArrayList<String>(object.keySet());
+    for (int i = 0; i < keyList.size(); ++i) {
+      String key = keyList.get(i);
+      JsonElement value = object.get(key);
+      String currentElementPath = path + "." + key;
+
+      // LOG.info("Key:" + key + ", Value:" + value + ", Path:" + currentElementPath);
+
+      for (FlattenRule rule : rules) {
+        // LOG.info("rule:" + rule.express);
+        boolean equal;
+        if (useInsensitiveExpression) {
+          equal = rule.express.equalsIgnoreCase(currentElementPath);
+        }
+        else {
+          equal = rule.express.equals(currentElementPath);
+        }
+        if (equal) {
+          // LOG.info("Path:" + currentElementPath + ", Rule:" + rule.express + " => " + rule.flatten);
+          object.remove(key);
+        }
+      }
+      if (value instanceof JsonObject) {
+        retrieveFlattenRemove(currentElementPath, (JsonObject) value);
 
         // 자식의 순회 처리가 끝날때마다 키를 가지지 않는 필드는 제거해준다.
         JsonObject postValue = (JsonObject) value;
